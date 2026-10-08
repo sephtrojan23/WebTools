@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Tools Challenge</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #064e3b, #10b981, #facc15);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .game-container {
+        width: 100%;
+        max-width: 900px;
+        background: #ffffff;
+        border-radius: 25px;
+        padding: 30px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        text-align: center;
+    }
+
+    h1 {
+        margin: 0;
+        color: #064e3b;
+        font-size: 2.4rem;
+    }
+
+    .subtitle {
+        color: #555;
+        margin: 8px 0 25px;
+    }
+
+    .stats {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .stat {
+        background: #ecfdf5;
+        border: 2px solid #10b981;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: bold;
+        color: #064e3b;
+    }
+
+    .game-area {
+        display: flex;
+        gap: 35px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .hangman {
+        width: 280px;
+        min-height: 280px;
+        background: #f9fafb;
+        border-radius: 20px;
+        padding: 15px;
+        border: 2px solid #e5e7eb;
+    }
+
+    svg {
+        width: 100%;
+        height: 250px;
+    }
+
+    .drawing {
+        stroke: #064e3b;
+        stroke-width: 6;
+        fill: none;
+        stroke-linecap: round;
+    }
+
+    .body-part {
+        display: none;
+    }
+
+    .word-area {
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .hint {
+        background: #fefce8;
+        border-left: 5px solid #facc15;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: #713f12;
+    }
+
+    .word {
+        font-size: 2rem;
+        font-weight: bold;
+        letter-spacing: 10px;
+        margin: 25px 0;
+        color: #064e3b;
+        word-wrap: break-word;
+    }
+
+    .keyboard {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .letter {
+        border: none;
+        padding: 12px 5px;
+        border-radius: 8px;
+        background: #10b981;
+        color: white;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .letter:hover:not(:disabled) {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+
+    .letter:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+    }
+
+    .letter.correct {
+        background: #16a34a;
+    }
+
+    .letter.wrong {
+        background: #dc2626;
+    }
+
+    .message {
+        min-height: 35px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 20px 0;
+    }
+
+    .success {
+        color: #16a34a;
+    }
+
+    .failure {
+        color: #dc2626;
+    }
+
+    .buttons {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .control-btn {
+        border: none;
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        background: #064e3b;
+        color: white;
+        transition: 0.2s;
+    }
+
+    .control-btn:hover {
+        background: #022c22;
+        transform: translateY(-2px);
+    }
+
+    .next-btn {
+        background: #eab308;
+        color: #422006;
+    }
+
+    .next-btn:hover {
+        background: #ca8a04;
+    }
+
+    .instructions {
+        margin-top: 25px;
+        padding: 15px;
+        background: #f3f4f6;
+        border-radius: 12px;
+        color: #4b5563;
+    }
+
+    @media (max-width: 600px) {
+        h1 {
+            font-size: 1.8rem;
+        }
+
+        .game-container {
+            padding: 18px;
+        }
+
+        .keyboard {
+            grid-template-columns: repeat(6, 1fr);
+        }
+
+        .word {
+            font-size: 1.5rem;
+            letter-spacing: 6px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="game-container">
+
+    <h1>🎯 Web Tools Challenge</h1>
+    <p class="subtitle">Guess the Web Tools!</p>
+
+    <div class="stats">
+        <div class="stat">🏆 Score: <span id="score">0</span></div>
+        <div class="stat">❤️ Lives: <span id="lives">6</span></div>        
+	<div class="stat">❌ Failed Words: <span id="failedWords">0</span>/3</div>
+        <div class="stat">📚 Round: <span id="round">1</span>/10</div>
+    </div>
+
+    <div class="game-area">
+
+        <!-- Hangman Drawing -->
+        <div class="hangman">
+            <svg viewBox="0 0 250 280">
+
+                <!-- Gallows -->
+                <line class="drawing" x1="30" y1="250" x2="220" y2="250"/>
+                <line class="drawing" x1="70" y1="250" x2="70" y2="30"/>
+                <line class="drawing" x1="70" y1="30" x2="180" y2="30"/>
+                <line class="drawing" x1="180" y1="30" x2="180" y2="60"/>
+
+                <!-- Head -->
+                <circle id="part1" class="drawing body-part"
+                        cx="180" cy="85" r="25"/>
+
+                <!-- Body -->
+                <line id="part2" class="drawing body-part"
+                      x1="180" y1="110" x2="180" y2="175"/>
+
+                <!-- Left Arm -->
+                <line id="part3" class="drawing body-part"
+                      x1="180" y1="125" x2="145" y2="155"/>
+
+                <!-- Right Arm -->
+                <line id="part4" class="drawing body-part"
+                      x1="180" y1="125" x2="215" y2="155"/>
+
+                <!-- Left Leg -->
+                <line id="part5" class="drawing body-part"
+                      x1="180" y1="175" x2="150" y2="220"/>
+
+                <!-- Right Leg -->
+                <line id="part6" class="drawing body-part"
+                      x1="180" y1="175" x2="210" y2="220"/>
+
+            </svg>
+        </div>
+
+        <div class="word-area">
+
+            <div class="hint">
+                💡 <strong>Hint:</strong>
+                <span id="hint">HTML vocabulary</span>
+            </div>
+
+            <div class="word" id="word"></div>
+
+            <div class="message" id="message"></div>
+
+            <div class="keyboard" id="keyboard"></div>
+
+        </div>
+
+    </div>
+
+    <div class="buttons">
+        <button class="control-btn" onclick="newGame()">
+            🔄 New Game
+        </button>
+
+        <button class="control-btn next-btn" onclick="nextWord()">
+            ➡️ Next Word
+        </button>
+    </div>
+
+    <div class="instructions">
+        <strong>How to Play:</strong><br>
+        Guess the hidden Web Tools by clicking the letters or using your keyboard.
+        You have <strong>6 incorrect guesses</strong> per Web Tool. The game ends after <strong>3 failed Web Tools</strong> (wrong or unanswered).
+    </div>
+
+</div>
+
+<script>
+
+const words = [
+    {
+        word: "CANVA",
+        hint: "A programming infographics and career posters."
+    },
+    {
+        word: "GOOGLECLASSROOM",
+        hint: "Best for online classes, assignments, grading, announcements, and materials."
+    },
+    {
+        word: "KAHOOT",
+        hint: "A game-based, quizzes and classroom competitions."
+    },
+    {
+        word: "WORDWALL",
+        hint: "Learning games like matching, quizzes, wheels, sorting, and other activities."
+    },
+    {
+        word: "QUIZIZZ",
+        hint: "A self-paced and live quizzes with reports."
+    },
+    {
+        word: "GENIALLY",
+        hint: "Interactive learning, presentations, games, and infographics."
+    },
+    {
+        word: "PADLET",
+        hint: "Digital boards for sharing ideas, files, and projects."
+    },
+    {
+        word: "GOOGLEFORM",
+        hint: "Best for assessment and surveys."
+    },
+    {
+        word: "NEARPOD",
+        hint: "Interactive lessons, slides, quizzes, polls, videos, and student activities."
+    },
+    {
+        word: "MICROSOFTTEAMS",
+        hint: "Platform for collaboration and online discussions."
+    }
+];
+
+let currentIndex = 0;
+let currentWord = "";
+let guessedLetters = [];
+let wrongGuesses = 0;
+let score = 0;
+let gameOver = false;
+let failedWords = 0;
+const MAX_FAILED_WORDS = 3;
+
+const keyboard = document.getElementById("keyboard");
+const wordDisplay = document.getElementById("word");
+const message = document.getElementById("message");
+const livesDisplay = document.getElementById("lives");
+const scoreDisplay = document.getElementById("score");
+const roundDisplay = document.getElementById("round");
+const hintDisplay = document.getElementById("hint");
+
+// Answer sound effects
+const correctSound = new Audio("check.mp3");
+const wrongSound = new Audio("wrong.mp3");
+const failedWordsDisplay = document.getElementById("failedWords");
+
+function startRound() {
+
+    currentWord = words[currentIndex].word;
+
+    guessedLetters = [];
+    wrongGuesses = 0;
+    gameOver = false;
+
+    message.textContent = "";
+    message.className = "message";
+
+    hintDisplay.textContent = words[currentIndex].hint;
+
+    livesDisplay.textContent = 6;
+    roundDisplay.textContent = currentIndex + 1;
+    failedWordsDisplay.textContent = failedWords;
+
+    resetHangman();
+    displayWord();
+    createKeyboard();
+}
+
+function displayWord() {
+
+    let output = "";
+
+    for (let letter of currentWord) {
+
+        if (guessedLetters.includes(letter)) {
+            output += letter + " ";
+        } else {
+            output += "_ ";
+        }
+    }
+
+    wordDisplay.textContent = output.trim();
+
+    if (!output.includes("_")) {
+        winRound();
+    }
+}
+
+function createKeyboard() {
+
+    keyboard.innerHTML = "";
+
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (let letter of alphabet) {
+
+        const button = document.createElement("button");
+
+        button.textContent = letter;
+        button.className = "letter";
+
+        button.onclick = function() {
+            guessLetter(letter, button);
+        };
+
+        keyboard.appendChild(button);
+    }
+}
+
+function guessLetter(letter, button) {
+
+    if (gameOver || guessedLetters.includes(letter)) {
+        return;
+    }
+
+    guessedLetters.push(letter);
+
+    button.disabled = true;
+
+    if (currentWord.includes(letter)) {
+
+        button.classList.add("correct");
+
+        // Play correct-answer sound
+        correctSound.currentTime = 0;
+        correctSound.play().catch(() => {});
+
+        displayWord();
+
+    } else {
+
+        button.classList.add("wrong");
+
+        // Play wrong-answer sound
+        wrongSound.currentTime = 0;
+        wrongSound.play().catch(() => {});
+
+        wrongGuesses++;
+
+        livesDisplay.textContent = 6 - wrongGuesses;
+
+        drawHangman();
+
+        if (wrongGuesses >= 6) {
+            loseRound();
+        }
+    }
+}
+
+function drawHangman() {
+
+    const part = document.getElementById(
+        "part" + wrongGuesses
+    );
+
+    if (part) {
+        part.style.display = "block";
+    }
+}
+
+function resetHangman() {
+
+    for (let i = 1; i <= 6; i++) {
+
+        document.getElementById(
+            "part" + i
+        ).style.display = "none";
+    }
+}
+
+function winRound() {
+
+    if (gameOver) return;
+
+    gameOver = true;
+
+    score += 10;
+
+    scoreDisplay.textContent = score;
+
+    message.textContent =
+        "🎉 Correct! You guessed " + currentWord + "!";
+
+    message.className = "message success";
+
+    disableKeyboard();
+}
+
+function loseRound() {
+
+    failedWords++;
+    failedWordsDisplay.textContent = failedWords;
+
+    wordDisplay.textContent =
+        currentWord.split("").join(" ");
+
+    disableKeyboard();
+
+    if (failedWords >= MAX_FAILED_WORDS) {
+        gameOver = true;
+
+        message.textContent =
+            "💀 GAME OVER! You failed to answer 3 words. Final Score: " + score;
+
+        message.className = "message failure";
+
+        keyboard.innerHTML = "";
+        return;
+    }
+
+    gameOver = true;
+
+    message.textContent =
+        "❌ Wrong word! The word was " + currentWord +
+        ". Failed words: " + failedWords + "/3";
+
+    message.className = "message failure";
+}
+
+function disableKeyboard() {
+
+    const buttons =
+        document.querySelectorAll(".letter");
+
+    buttons.forEach(button => {
+        button.disabled = true;
+    });
+}
+
+function nextWord() {
+
+    if (failedWords >= MAX_FAILED_WORDS) {
+        return;
+    }
+
+    currentIndex++;
+
+    if (currentIndex >= words.length) {
+
+        message.textContent =
+            "🏆 Congratulations! You completed all 10 HTML words!";
+
+        message.className = "message success";
+
+        wordDisplay.textContent = "GAME COMPLETE!";
+
+        keyboard.innerHTML = "";
+
+        return;
+    }
+
+    startRound();
+}
+
+function newGame() {
+
+    currentIndex = 0;
+    score = 0;
+    failedWords = 0;
+    gameOver = false;
+
+    scoreDisplay.textContent = score;
+
+    startRound();
+}
+
+document.addEventListener("keydown", function(event) {
+
+    const letter = event.key.toUpperCase();
+
+    if (
+        /^[A-Z]$/.test(letter) &&
+        !gameOver
+    ) {
+
+        const buttons =
+            document.querySelectorAll(".letter");
+
+        buttons.forEach(button => {
+
+            if (
+                button.textContent === letter &&
+                !button.disabled
+            ) {
+                guessLetter(letter, button);
+            }
+
+        });
+    }
+
+});
+
+startRound();
+
+</script>
+
+</body>
+</html>
+```
